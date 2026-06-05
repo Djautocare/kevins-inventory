@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<title>Search Stock</title>
+
+<style>
+html{touch-action:manipulation;}
+*{box-sizing:border-box;}
+
+body{
+    font-family:Arial,sans-serif;
+    background:#0d0d0d;
+    color:white;
+    padding:18px;
+    margin:0;
+}
+
+.page{max-width:800px;margin:0 auto;}
+
+.panel{
+    background:#1b1b1b;
+    border:1px solid rgba(255,255,255,0.08);
+    padding:22px;
+    border-radius:18px;
+}
+
+h1{text-align:center;margin:8px 0 6px;}
+.subtitle{text-align:center;color:#aaa;margin-bottom:22px;}
+
+input{
+    width:100%;
+    padding:14px;
+    margin:10px 0 16px;
+    border:none;
+    border-radius:12px;
+    font-size:16px;
+    background:#2a2a2a;
+    color:white;
+    border:1px solid rgba(255,255,255,0.08);
+}
+
+.result-card{
+    background:#242424;
+    border:1px solid rgba(255,255,255,0.08);
+    padding:14px;
+    border-radius:14px;
+    margin-bottom:12px;
+}
+
+.item-title{
+    font-size:18px;
+    font-weight:bold;
+    margin-bottom:5px;
+}
+
+.item-id{
+    color:#aaa;
+    font-size:13px;
+    margin-bottom:8px;
+}
+
+.qty{
+    font-weight:bold;
+    color:#4CAF50;
+    margin-bottom:8px;
+}
+
+.location{
+    background:#111;
+    padding:8px;
+    border-radius:10px;
+    margin-top:6px;
+    color:#ddd;
+}
+
+.empty{
+    text-align:center;
+    color:#aaa;
+    background:#242424;
+    padding:16px;
+    border-radius:14px;
+}
+
+.back{
+    display:block;
+    text-align:center;
+    color:white;
+    background:#333;
+    text-decoration:none;
+    padding:14px;
+    border-radius:12px;
+    font-weight:bold;
+    margin-top:16px;
+}
+
+#loading{
+    display:none;
+    text-align:center;
+    color:#aaa;
+    margin:10px 0;
+}
+</style>
+</head>
+
+<body>
+
+<div class="page">
+<div class="panel">
+
+<h1>Search Stock</h1>
+<p class="subtitle">Start typing to search items</p>
+
+<input type="text" id="searchInput" placeholder="Search by item name or ID...">
+
+<div id="loading">Searching...</div>
+
+<div id="results">
+    <div class="empty">Type at least 2 letters to search.</div>
+</div>
+
+<a class="back" href="index.html">← Back to Dashboard</a>
+
+</div>
+</div>
+
+<script>
+const API_URL =
+"https://script.google.com/macros/s/AKfycbw-U6GNlgib1X8IfhA2j3FKU3NpVrvfK_ZKmIrumcu8eBOIcapg7rrPz87XmWm4AhRD/exec";
+
+let searchTimer = null;
+
+function liveSearch(){
+    const query = document.getElementById("searchInput").value.trim();
+    const results = document.getElementById("results");
+
+    clearTimeout(searchTimer);
+
+    if(query.length < 2){
+        results.innerHTML =
+            '<div class="empty">Type at least 2 letters to search.</div>';
+        return;
+    }
+
+    searchTimer = setTimeout(()=>{
+        document.getElementById("loading").style.display = "block";
+
+        fetch(API_URL,{
+            method:"POST",
+            body:JSON.stringify({
+                action:"SEARCH",
+                query:query
+            })
+        })
+        .then(res=>res.json())
+        .then(data=>{
+            document.getElementById("loading").style.display = "none";
+
+            if(!data.success || !data.results || data.results.length === 0){
+                results.innerHTML =
+                    '<div class="empty">No matching items found.</div>';
+                return;
+            }
+
+            let html = "";
+
+            data.results.forEach(item=>{
+                let locationsHtml = "";
+
+                if(item.locations && item.locations.length > 0){
+                    item.locations.forEach(loc=>{
+                        locationsHtml += `
+                            <div class="location">
+                                ${loc.location} — Qty ${loc.qty}
+                            </div>
+                        `;
+                    });
+                }else{
+                    locationsHtml =
+                        '<div class="location">No stock currently</div>';
+                }
+
+                html += `
+                    <div class="result-card">
+                        <div class="item-title">${item.description}</div>
+                        <div class="item-id">${item.itemId}</div>
+                        <div class="qty">Total Qty: ${item.totalQty}</div>
+                        ${locationsHtml}
+                    </div>
+                `;
+            });
+
+            results.innerHTML = html;
+        })
+        .catch(error=>{
+            document.getElementById("loading").style.display = "none";
+            console.error(error);
+
+            results.innerHTML =
+                '<div class="empty">Search error. Please try again.</div>';
+        });
+    },250);
+}
+
+document.getElementById("searchInput").addEventListener("input",liveSearch);
+</script>
+
+</body>
+</html>
