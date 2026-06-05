@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Remove Stock</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .box {
+      background: #1e1e1e;
+      padding: 20px;
+      border-radius: 12px;
+      max-width: 500px;
+      margin: auto;
+    }
+
+    input, select, button {
+      width: 90%;
+      padding: 12px;
+      margin: 10px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    button {
+      background: #d4af37;
+      color: black;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #f1cc55;
+    }
+
+    .result {
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    a {
+      color: #d4af37;
+      display: block;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="box">
+    <h1>Remove Stock</h1>
+
+    <input id="searchBox" type="text" placeholder="Search item description..." oninput="searchItems()">
+
+    <select id="itemSelect" onchange="itemSelected()">
+      <option value="">Select item</option>
+    </select>
+
+    <input id="barcode" type="text" placeholder="Item ID / Barcode" readonly>
+
+    <input id="qty" type="number" min="1" value="1" placeholder="Quantity to remove">
+
+    <input id="saleAmount" type="number" step="0.01" placeholder="Sale amount">
+
+    <button onclick="removeStock()">Remove Stock</button>
+
+    <div id="message" class="result"></div>
+
+    <a href="index.html">Back to Home</a>
+  </div>
+
+<script>
+const SCRIPT_URL = "PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE";
+
+let products = [];
+
+async function searchItems() {
+  const query = document.getElementById("searchBox").value.trim();
+
+  if (query.length < 1) {
+    document.getElementById("itemSelect").innerHTML = '<option value="">Select item</option>';
+    return;
+  }
+
+  const res = await fetch(`${SCRIPT_URL}?action=searchProducts&q=${encodeURIComponent(query)}`);
+  const data = await res.json();
+
+  products = data;
+
+  const select = document.getElementById("itemSelect");
+  select.innerHTML = '<option value="">Select item</option>';
+
+  data.forEach(item => {
+    const option = document.createElement("option");
+    option.value = item.barcode;
+    option.textContent = `${item.description} - ${item.barcode}`;
+    select.appendChild(option);
+  });
+}
+
+function itemSelected() {
+  document.getElementById("barcode").value = document.getElementById("itemSelect").value;
+}
+
+async function removeStock() {
+  const barcode = document.getElementById("barcode").value.trim();
+  const qty = document.getElementById("qty").value;
+  const saleAmount = document.getElementById("saleAmount").value;
+
+  if (!barcode || !qty) {
+    document.getElementById("message").textContent = "Select an item and quantity first.";
+    return;
+  }
+
+  document.getElementById("message").textContent = "Removing stock...";
+
+  const formData = new FormData();
+  formData.append("action", "removeStock");
+  formData.append("barcode", barcode);
+  formData.append("qty", qty);
+  formData.append("saleAmount", saleAmount);
+
+  const res = await fetch(SCRIPT_URL, {
+    method: "POST",
+    body: formData
+  });
+
+  const text = await res.text();
+
+  document.getElementById("message").textContent = text;
+
+  document.getElementById("qty").value = 1;
+  document.getElementById("saleAmount").value = "";
+}
+</script>
+
+</body>
+</html>
