@@ -8,66 +8,96 @@
 
 <style>
 html{touch-action:manipulation;}
-*{box-sizing:border-box;} 
+*{box-sizing:border-box;}
 
 body{
     font-family:Arial,sans-serif;
-    background:#0d0d0d;
+    background:linear-gradient(135deg,#050505,#141414,#1f1a08);
     color:white;
-    padding:18px;
     margin:0;
+    padding:18px;
 }
 
-.page{max-width:700px;margin:0 auto;}
+.page{
+    max-width:760px;
+    margin:0 auto;
+}
 
 .panel{
-    background:#1b1b1b;
-    border:1px solid rgba(255,255,255,0.08);
-    padding:22px;
-    border-radius:18px;
+    background:rgba(20,20,20,0.96);
+    border:1px solid rgba(212,175,55,0.25);
+    padding:24px;
+    border-radius:22px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.45);
 }
 
-h1{text-align:center;margin:8px 0 6px;}
-.subtitle{text-align:center;color:#aaa;margin-bottom:22px;}
+h1{
+    text-align:center;
+    margin:8px 0 4px;
+    font-size:32px;
+    color:#f4d46b;
+}
+
+.subtitle{
+    text-align:center;
+    color:#bbb;
+    margin-bottom:22px;
+}
 
 input,button{
     width:100%;
-    padding:14px;
+    padding:15px;
     margin:10px 0;
     border:none;
-    border-radius:12px;
+    border-radius:14px;
     font-size:16px;
 }
 
-input{background:#2a2a2a;color:white;}
+input{
+    background:#2a2a2a;
+    color:white;
+    outline:1px solid rgba(255,255,255,0.08);
+}
 
 button{
-    background:#4CAF50;
-    color:white;
+    background:linear-gradient(135deg,#d4af37,#f4d46b);
+    color:#111;
     font-weight:bold;
+    cursor:pointer;
 }
 
 #app{display:none;}
-#loginBox{max-width:430px;margin:80px auto;text-align:center;}
-#loginError{color:#ff7777;font-weight:bold;}
+
+#loginBox{
+    max-width:430px;
+    margin:80px auto;
+    text-align:center;
+}
+
+#loginError{
+    color:#ff7777;
+    font-weight:bold;
+}
 
 .stats-grid{
     display:grid;
     grid-template-columns:1fr 1fr 1fr;
     gap:12px;
-    margin:20px 0;
+    margin:22px 0;
 }
 
 .stat-card{
     background:#242424;
-    border-radius:14px;
-    padding:14px;
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:16px;
+    padding:16px;
     text-align:center;
 }
 
 .stat-value{
-    font-size:26px;
+    font-size:30px;
     font-weight:bold;
+    color:#f4d46b;
 }
 
 .stat-label{
@@ -78,29 +108,60 @@ button{
 
 .menu{
     display:grid;
-    gap:12px;
-    margin-top:20px;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    margin-top:24px;
 }
 
 .menu a{
-    display:block;
     text-decoration:none;
     color:white;
     background:#242424;
-    border:1px solid rgba(255,255,255,0.08);
-    padding:18px;
-    border-radius:14px;
-    font-size:18px;
+    border:1px solid rgba(212,175,55,0.25);
+    padding:20px;
+    border-radius:18px;
+    font-size:17px;
     font-weight:bold;
+    text-align:center;
+    transition:0.2s;
+}
+
+.menu a:hover{
+    background:#2f2f2f;
+    transform:scale(1.02);
+}
+
+.menu span{
+    display:block;
+    font-size:30px;
+    margin-bottom:8px;
 }
 
 .logout{
-    margin-top:20px;
+    margin-top:24px;
     background:#333;
+    color:white;
+}
+
+.footer{
+    text-align:center;
+    color:#777;
+    margin-top:20px;
+    font-size:13px;
 }
 
 @media(max-width:650px){
-    .stats-grid{grid-template-columns:1fr;}
+    .stats-grid{
+        grid-template-columns:1fr;
+    }
+
+    .menu{
+        grid-template-columns:1fr;
+    }
+
+    h1{
+        font-size:28px;
+    }
 }
 </style>
 </head>
@@ -111,15 +172,17 @@ button{
 
 <div class="panel" id="loginBox">
     <h1>Inventory Basic</h1>
-    <p class="subtitle">Enter password</p>
-    <input type="password" id="password" placeholder="Password">
+    <p class="subtitle">Simple stock management system</p>
+
+    <input type="password" id="password" placeholder="Enter password">
     <button onclick="login()">Login</button>
+
     <p id="loginError"></p>
 </div>
 
 <div class="panel" id="app">
     <h1>Inventory Basic</h1>
-    <p class="subtitle">Simple stock management</p>
+    <p class="subtitle">Add, remove, move and search stock easily</p>
 
     <div class="stats-grid">
         <div class="stat-card">
@@ -139,13 +202,37 @@ button{
     </div>
 
     <div class="menu">
-        <a href="add.html">➕ Add Stock</a>
-        <a href="remove.html">➖ Remove Stock</a>
-        <a href="search.html">🔍 Search Stock</a>
-        <a href="boxes.html">📦 Manage Boxes</a>
+        <a href="add.html">
+            <span>➕</span>
+            Add Stock
+        </a>
+
+        <a href="remove.html">
+            <span>➖</span>
+            Remove Stock
+        </a>
+
+        <a href="move.html">
+            <span>🔁</span>
+            Move Stock
+        </a>
+
+        <a href="search.html">
+            <span>🔍</span>
+            Search Stock
+        </a>
+
+        <a href="boxes.html">
+            <span>📦</span>
+            Manage Boxes
+        </a>
     </div>
 
     <button class="logout" onclick="logout()">Logout</button>
+
+    <div class="footer">
+        Inventory Basic
+    </div>
 </div>
 
 </div>
@@ -181,7 +268,12 @@ function showApp(){
 function loadStats(){
     fetch(API_URL,{
         method:"POST",
-        body:JSON.stringify({action:"STATS"})
+        headers:{
+            "Content-Type":"text/plain"
+        },
+        body:JSON.stringify({
+            action:"STATS"
+        })
     })
     .then(res=>res.json())
     .then(data=>{
