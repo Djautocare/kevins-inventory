@@ -3,37 +3,161 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Boxes</title>
+
 <style>
-body{font-family:Arial;background:#111;color:white;text-align:center;padding:20px;}
-.box{background:#1e1e1e;padding:20px;border-radius:12px;max-width:600px;margin:auto;}
-input,button{width:90%;padding:12px;margin:8px;border:none;border-radius:8px;font-size:16px;}
-button{background:#d4af37;color:black;font-weight:bold;}
-a{color:#d4af37;display:block;margin-top:20px;}
+*{box-sizing:border-box;}
+body{
+    font-family:Arial,sans-serif;
+    background:linear-gradient(135deg,#050505,#151515,#1f1a08);
+    color:white;
+    margin:0;
+    padding:18px;
+}
+.page{
+    max-width:750px;
+    margin:auto;
+}
+.panel{
+    background:#1b1b1b;
+    border:1px solid rgba(212,175,55,0.25);
+    padding:22px;
+    border-radius:20px;
+}
+h1{
+    text-align:center;
+    color:#f4d46b;
+}
+input,select,button{
+    width:100%;
+    padding:14px;
+    margin:8px 0;
+    border:none;
+    border-radius:12px;
+    font-size:16px;
+}
+button{
+    background:linear-gradient(135deg,#d4af37,#f4d46b);
+    color:#111;
+    font-weight:bold;
+}
+.box-card{
+    background:#262626;
+    border:1px solid rgba(255,255,255,0.08);
+    padding:14px;
+    border-radius:14px;
+    margin:10px 0;
+}
+.small{
+    color:#bbb;
+    font-size:14px;
+}
+.danger{
+    background:#8b1e1e;
+    color:white;
+}
+a{
+    color:#f4d46b;
+    display:block;
+    text-align:center;
+    margin-top:18px;
+}
 </style>
 </head>
+
 <body>
 
-<div class="box">
-<h1>Boxes</h1>
+<div class="page">
+<div class="panel">
 
-<input id="boxName" placeholder="Box name">
+<h1>📦 Boxes</h1>
+
+<input id="boxName" placeholder="New box name">
 <input id="boxNotes" placeholder="Notes optional">
 
 <button onclick="addBox()">Add Box</button>
 
+<input id="searchBox" placeholder="Search boxes..." oninput="renderBoxes()">
+
+<select id="sortBy" onchange="renderBoxes()">
+    <option value="name">Sort by name</option>
+    <option value="notes">Sort by notes</option>
+</select>
+
 <p id="msg"></p>
 
+<div id="boxesList">Loading boxes...</div>
+
 <a href="index.html">Back to Home</a>
+
 </div>
-
-<form id="hiddenForm" method="POST" target="hiddenFrame" style="display:none;">
-<input name="payload" id="payload">
-</form>
-
-<iframe name="hiddenFrame" style="display:none;"></iframe>
+</div>
 
 <script>
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw-U6GNlgib1X8IfhA2j3FKU3NpVrvfK_ZKmIrumcu8eBOIcapg7rrPz87XmWm4AhRD/exec";
+
+let allBoxes = [];
+
+function jsonp(payload, callbackName){
+    const params = new URLSearchParams(payload);
+    params.append("callback", callbackName);
+
+    const script = document.createElement("script");
+    script.src = SCRIPT_URL + "?" + params.toString();
+    document.body.appendChild(script);
+
+    script.onload = () => script.remove();
+}
+
+function loadBoxes(){
+    window.boxesCallback = function(data){
+        if(!data.success){
+            document.getElementById("boxesList").innerHTML = data.error || "Could not load boxes";
+            return;
+        }
+
+        allBoxes = data.boxes || [];
+        renderBoxes();
+    };
+
+    jsonp({
+        action:"GET_BOXES"
+    }, "boxesCallback");
+}
+
+function renderBoxes(){
+    const search = document.getElementById("searchBox").value.toLowerCase();
+    const sortBy = document.getElementById("sortBy").value;
+
+    let boxes = allBoxes.filter(b =>
+        String(b.box || "").toLowerCase().includes(search) ||
+        String(b.notes || "").toLowerCase().includes(search)
+    );
+
+    boxes.sort((a,b)=>{
+        if(sortBy === "notes"){
+            return String(a.notes || "").localeCompare(String(b.notes || ""), undefined, {numeric:true});
+        }
+
+        return String(a.box || "").localeCompare(String(b.box || ""), undefined, {numeric:true});
+    });
+
+    const list = document.getElementById("boxesList");
+
+    if(boxes.length === 0){
+        list.innerHTML = "<p>No boxes found.</p>";
+        return;
+    }
+
+    list.innerHTML = boxes.map(b => `
+        <div class="box-card">
+            <h3>${b.box}</h3>
+            <div class="small">${b.notes || "No notes"}</div>
+            <button onclick="viewBox('${b.box}')">View Contents</button>
+            <button class="danger" onclick="deleteBox('${b.box}')">Delete Box</button>
+            <div id="contents-${b.box.replaceAll(" ","_")}"></div>
+        </div>
+    `).join("");
+}
 
 function addBox(){
     const box = document.getElementById("boxName").value.trim();
@@ -44,19 +168,73 @@ function addBox(){
         return;
     }
 
-    document.getElementById("hiddenForm").action = SCRIPT_URL;
-    document.getElementById("payload").value = JSON.stringify({
+    window.addBoxCallback = function(data){
+        document.getElementById("msg").innerText =
+            data.success ? "Box added" : data.error;
+
+        document.getElementById("boxName").value = "";
+        document.getElementById("boxNotes").value = "";
+
+        loadBoxes();
+    };
+
+    jsonp({
         action:"CREATE_BOX",
         box:box,
         notes:notes
-    });
-
-    document.getElementById("hiddenForm").submit();
-
-    document.getElementById("msg").innerText = "Box submitted. Check your sheet.";
-    document.getElementById("boxName").value = "";
-    document.getElementById("boxNotes").value = "";
+    }, "addBoxCallback");
 }
+
+function deleteBox(box){
+    if(!confirm("Delete " + box + "? Only empty boxes can be deleted.")){
+        return;
+    }
+
+    window.deleteBoxCallback = function(data){
+        document.getElementById("msg").innerText =
+            data.success ? "Box deleted" : data.error;
+
+        loadBoxes();
+    };
+
+    jsonp({
+        action:"DELETE_BOX",
+        box:box
+    }, "deleteBoxCallback");
+}
+
+function viewBox(box){
+    window.boxContentsCallback = function(data){
+        const id = "contents-" + box.replaceAll(" ","_");
+        const el = document.getElementById(id);
+
+        if(!data.success){
+            el.innerHTML = `<p>${data.error}</p>`;
+            return;
+        }
+
+        if(data.results.length === 0){
+            el.innerHTML = "<p class='small'>This box is empty.</p>";
+            return;
+        }
+
+        el.innerHTML = `
+            <p class="small">Total items: ${data.totalQty}</p>
+            ${data.results.map(item => `
+                <div class="small">
+                    ${item.description} — ${item.itemId} — Qty ${item.qty}
+                </div>
+            `).join("")}
+        `;
+    };
+
+    jsonp({
+        action:"BOX_CONTENTS",
+        box:box
+    }, "boxContentsCallback");
+}
+
+loadBoxes();
 </script>
 
 </body>
