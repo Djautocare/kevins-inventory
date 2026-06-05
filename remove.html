@@ -1,147 +1,260 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <base target="_top">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Remove Stock</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Remove Stock</title>
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: white;
-      text-align: center;
-      padding: 20px;
-    }
+<style>
+*{box-sizing:border-box;}
 
-    .box {
-      background: #1e1e1e;
-      padding: 20px;
-      border-radius: 12px;
-      max-width: 500px;
-      margin: auto;
-    }
+body{
+    font-family:Arial,sans-serif;
+    background:linear-gradient(135deg,#050505,#151515,#1f1a08);
+    color:white;
+    margin:0;
+    padding:18px;
+}
 
-    input, select, button {
-      width: 90%;
-      padding: 12px;
-      margin: 10px;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-    }
+.page{
+    max-width:650px;
+    margin:auto;
+}
 
-    button {
-      background: #d4af37;
-      color: black;
-      font-weight: bold;
-      cursor: pointer;
-    }
+.panel{
+    background:#1b1b1b;
+    border:1px solid rgba(212,175,55,0.25);
+    padding:22px;
+    border-radius:20px;
+}
 
-    button:hover {
-      background: #f1cc55;
-    }
+h1{
+    text-align:center;
+    color:#f4d46b;
+}
 
-    .result {
-      margin-top: 15px;
-      font-weight: bold;
-    }
+input,select,button{
+    width:100%;
+    padding:14px;
+    margin:8px 0;
+    border:none;
+    border-radius:12px;
+    font-size:16px;
+}
 
-    a {
-      color: #d4af37;
-      display: block;
-      margin-top: 20px;
-    }
-  </style>
+input,select{
+    background:#2a2a2a;
+    color:white;
+}
+
+button{
+    background:linear-gradient(135deg,#d4af37,#f4d46b);
+    color:#111;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.result{
+    margin-top:15px;
+    text-align:center;
+    font-weight:bold;
+}
+
+.small{
+    color:#bbb;
+    text-align:center;
+    font-size:14px;
+}
+
+a{
+    color:#f4d46b;
+    display:block;
+    text-align:center;
+    margin-top:18px;
+}
+</style>
 </head>
 
 <body>
 
-  <div class="box">
-    <h1>Remove Stock</h1>
+<div class="page">
+<div class="panel">
 
-    <input id="searchBox" type="text" placeholder="Search item description..." oninput="searchItems()">
+<h1>➖ Remove Stock</h1>
 
-    <select id="itemSelect" onchange="itemSelected()">
-      <option value="">Select item</option>
-    </select>
+<input
+    id="searchBox"
+    type="text"
+    placeholder="Search item..."
+    oninput="searchItems()">
 
-    <input id="barcode" type="text" placeholder="Item ID / Barcode" readonly>
+<select id="itemSelect" onchange="itemSelected()">
+    <option value="">Select item</option>
+</select>
 
-    <input id="qty" type="number" min="1" value="1" placeholder="Quantity to remove">
+<input
+    id="itemId"
+    type="text"
+    placeholder="Item ID"
+    readonly>
 
-    <input id="saleAmount" type="number" step="0.01" placeholder="Sale amount">
+<select id="locationSelect">
+    <option value="">Select box/location</option>
+</select>
 
-    <button onclick="removeStock()">Remove Stock</button>
+<input
+    id="qty"
+    type="number"
+    min="1"
+    value="1">
 
-    <div id="message" class="result"></div>
+<button onclick="removeStock()">
+Remove Stock
+</button>
 
-    <a href="index.html">Back to Home</a>
-  </div>
+<div id="message" class="result"></div>
+
+<p class="small">
+Search updates automatically as you type.
+</p>
+
+<a href="index.html">Back to Home</a>
+
+</div>
+</div>
 
 <script>
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw-U6GNlgib1X8IfhA2j3FKU3NpVrvfK_ZKmIrumcu8eBOIcapg7rrPz87XmWm4AhRD/exec";
+
+const SCRIPT_URL =
+"https://script.google.com/macros/s/AKfycbw-U6GNlgib1X8IfhA2j3FKU3NpVrvfK_ZKmIrumcu8eBOIcapg7rrPz87XmWm4AhRD/exec";
 
 let products = [];
+  async function searchItems(){
 
-async function searchItems() {
-  const query = document.getElementById("searchBox").value.trim();
+    const query =
+    document.getElementById("searchBox").value.trim();
 
-  if (query.length < 1) {
-    document.getElementById("itemSelect").innerHTML = '<option value="">Select item</option>';
-    return;
-  }
+    if(query.length < 1){
+        document.getElementById("itemSelect").innerHTML =
+        '<option value="">Select item</option>';
+        return;
+    }
 
-  const res = await fetch(`${SCRIPT_URL}?action=searchProducts&q=${encodeURIComponent(query)}`);
-  const data = await res.json();
+    const response = await fetch(
+        SCRIPT_URL,
+        {
+            method:"POST",
+            headers:{
+                "Content-Type":"text/plain"
+            },
+            body:JSON.stringify({
+                action:"SEARCH",
+                query:query
+            })
+        }
+    );
 
-  products = data;
+    const data = await response.json();
 
-  const select = document.getElementById("itemSelect");
-  select.innerHTML = '<option value="">Select item</option>';
+    products = data.results || [];
 
-  data.forEach(item => {
-    const option = document.createElement("option");
-    option.value = item.barcode;
-    option.textContent = `${item.description} - ${item.barcode}`;
-    select.appendChild(option);
-  });
+    const select =
+    document.getElementById("itemSelect");
+
+    select.innerHTML =
+    '<option value="">Select item</option>';
+
+    products.forEach(item => {
+
+        select.innerHTML += `
+        <option value="${item.itemId}">
+            ${item.description}
+            (${item.totalQty})
+        </option>`;
+    });
 }
 
-function itemSelected() {
-  document.getElementById("barcode").value = document.getElementById("itemSelect").value;
+function itemSelected(){
+
+    const itemId =
+    document.getElementById("itemSelect").value;
+
+    document.getElementById("itemId").value =
+    itemId;
+
+    const item =
+    products.find(x => x.itemId === itemId);
+
+    const locationSelect =
+    document.getElementById("locationSelect");
+
+    locationSelect.innerHTML =
+    '<option value="">Select box/location</option>';
+
+    if(!item) return;
+
+    item.locations.forEach(loc => {
+
+        locationSelect.innerHTML += `
+        <option value="${loc.location}">
+            ${loc.location} (Qty ${loc.qty})
+        </option>`;
+    });
 }
 
-async function removeStock() {
-  const barcode = document.getElementById("barcode").value.trim();
-  const qty = document.getElementById("qty").value;
-  const saleAmount = document.getElementById("saleAmount").value;
+async function removeStock(){
 
-  if (!barcode || !qty) {
-    document.getElementById("message").textContent = "Select an item and quantity first.";
-    return;
-  }
+    const itemId =
+    document.getElementById("itemId").value;
 
-  document.getElementById("message").textContent = "Removing stock...";
+    const location =
+    document.getElementById("locationSelect").value;
 
-  const formData = new FormData();
-  formData.append("action", "removeStock");
-  formData.append("barcode", barcode);
-  formData.append("qty", qty);
-  formData.append("saleAmount", saleAmount);
+    const qty =
+    Number(document.getElementById("qty").value);
 
-  const res = await fetch(SCRIPT_URL, {
-    method: "POST",
-    body: formData
-  });
+    if(!itemId || !location){
+        alert("Select an item and box");
+        return;
+    }
 
-  const text = await res.text();
+    document.getElementById("message").innerText =
+    "Removing...";
 
-  document.getElementById("message").textContent = text;
+    const response = await fetch(
+        SCRIPT_URL,
+        {
+            method:"POST",
+            headers:{
+                "Content-Type":"text/plain"
+            },
+            body:JSON.stringify({
+                action:"REMOVE",
+                itemId:itemId,
+                location:location,
+                qty:qty
+            })
+        }
+    );
 
-  document.getElementById("qty").value = 1;
-  document.getElementById("saleAmount").value = "";
+    const data = await response.json();
+
+    if(data.success){
+
+        document.getElementById("message").innerText =
+        `Removed ${data.removedQty}`;
+
+        document.getElementById("qty").value = 1;
+
+        searchItems();
+
+    }else{
+
+        document.getElementById("message").innerText =
+        data.error || "Failed";
+
+    }
 }
+
 </script>
 
 </body>
