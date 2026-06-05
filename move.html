@@ -12,7 +12,6 @@ body{
     text-align:center;
     padding:20px;
 }
-
 .box{
     background:#1e1e1e;
     padding:20px;
@@ -20,7 +19,6 @@ body{
     max-width:600px;
     margin:auto;
 }
-
 input,select,button{
     width:90%;
     padding:12px;
@@ -29,19 +27,16 @@ input,select,button{
     border-radius:8px;
     font-size:16px;
 }
-
 button{
     background:#d4af37;
     color:black;
     font-weight:bold;
     cursor:pointer;
 }
-
 .result{
     margin-top:15px;
     font-weight:bold;
 }
-
 a{
     color:#d4af37;
     display:block;
@@ -53,24 +48,15 @@ a{
 <body>
 
 <div class="box">
-
 <h1>Move Stock</h1>
 
-<input
-    id="searchBox"
-    type="text"
-    placeholder="Search item..."
-    oninput="searchItems()">
+<input id="searchBox" type="text" placeholder="Search item..." oninput="searchItems()">
 
 <select id="itemSelect" onchange="fillItem()">
     <option value="">Select Item</option>
 </select>
 
-<input
-    id="barcode"
-    type="text"
-    placeholder="Barcode"
-    readonly>
+<input id="itemId" type="text" placeholder="Item ID" readonly>
 
 <select id="currentBox">
     <option value="">Current Box</option>
@@ -80,173 +66,141 @@ a{
     <option value="">Move To Box</option>
 </select>
 
-<input
-    id="qty"
-    type="number"
-    min="1"
-    value="1"
-    placeholder="Quantity">
+<input id="qty" type="number" min="1" value="1" placeholder="Quantity">
 
-<button onclick="moveStock()">
-Move Stock
-</button>
+<button onclick="moveStock()">Move Stock</button>
 
 <div id="message" class="result"></div>
 
 <a href="index.html">Back to Home</a>
-
 </div>
 
 <script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw-U6GNlgib1X8IfhA2j3FKU3NpVrvfK_ZKmIrumcu8eBOIcapg7rrPz87XmWm4AhRD/exec";
 
-const SCRIPT_URL =
-"PASTE_YOUR_APPS_SCRIPT_URL_HERE";
+let products = [];
+let allBoxes = [];
 
-let products=[];
-
-async function loadBoxes(){
-
-    const res=await fetch(
-        `${SCRIPT_URL}?action=getBoxes`
-    );
-
-    const boxes=await res.json();
-
-    const current=document.getElementById("currentBox");
-    const target=document.getElementById("newBox");
-
-    current.innerHTML=
-    '<option value="">Current Box</option>';
-
-    target.innerHTML=
-    '<option value="">Move To Box</option>';
-
-    boxes.forEach(box=>{
-
-        current.innerHTML+=
-        `<option value="${box.name}">
-        ${box.name}
-        </option>`;
-
-        target.innerHTML+=
-        `<option value="${box.name}">
-        ${box.name}
-        </option>`;
+async function postData(payload){
+    const res = await fetch(SCRIPT_URL, {
+        method:"POST",
+        headers:{
+            "Content-Type":"text/plain"
+        },
+        body:JSON.stringify(payload)
     });
 
+    return await res.json();
 }
 
-async function searchItems(){
+async function loadBoxes(){
+    const data = await postData({
+        action:"GET_BOXES"
+    });
 
-    const q=
-    document.getElementById("searchBox")
-    .value.trim();
-
-    if(q.length<1){
+    if(!data.success){
+        document.getElementById("message").textContent = data.error || "Could not load boxes";
         return;
     }
 
-    const res=await fetch(
-        `${SCRIPT_URL}?action=searchProducts&q=${encodeURIComponent(q)}`
-    );
+    allBoxes = data.boxes || [];
 
-    products=await res.json();
+    const target = document.getElementById("newBox");
+    target.innerHTML = '<option value="">Move To Box</option>';
 
-    const select=
-    document.getElementById("itemSelect");
+    allBoxes.forEach(box=>{
+        target.innerHTML += `<option value="${box.box}">${box.box}</option>`;
+    });
+}
 
-    select.innerHTML=
-    '<option value="">Select Item</option>';
+async function searchItems(){
+    const q = document.getElementById("searchBox").value.trim();
 
-    products.forEach(item=>{
+    if(q.length < 1){
+        document.getElementById("itemSelect").innerHTML = '<option value="">Select Item</option>';
+        document.getElementById("itemId").value = "";
+        document.getElementById("currentBox").innerHTML = '<option value="">Current Box</option>';
+        return;
+    }
 
-        select.innerHTML+=
-        `<option value="${item.barcode}">
-        ${item.description}
-        </option>`;
+    const data = await postData({
+        action:"SEARCH",
+        query:q
     });
 
+    if(!data.success){
+        document.getElementById("message").textContent = data.error || "Search failed";
+        return;
+    }
+
+    products = data.results || [];
+
+    const select = document.getElementById("itemSelect");
+    select.innerHTML = '<option value="">Select Item</option>';
+
+    products.forEach(item=>{
+        select.innerHTML += `
+            <option value="${item.itemId}">
+                ${item.description} - ${item.itemId} - Qty ${item.totalQty}
+            </option>
+        `;
+    });
 }
 
 function fillItem(){
+    const selectedItemId = document.getElementById("itemSelect").value;
+    document.getElementById("itemId").value = selectedItemId;
 
-    const barcode=
-    document.getElementById("itemSelect").value;
+    const selectedProduct = products.find(p => p.itemId === selectedItemId);
 
-    document.getElementById("barcode").value=
-    barcode;
+    const current = document.getElementById("currentBox");
+    current.innerHTML = '<option value="">Current Box</option>';
 
+    if(selectedProduct && selectedProduct.locations){
+        selectedProduct.locations.forEach(loc=>{
+            current.innerHTML += `
+                <option value="${loc.location}">
+                    ${loc.location} - Qty ${loc.qty}
+                </option>
+            `;
+        });
+    }
 }
 
 async function moveStock(){
+    const itemId = document.getElementById("itemId").value.trim();
+    const fromBox = document.getElementById("currentBox").value;
+    const toBox = document.getElementById("newBox").value;
+    const qty = Number(document.getElementById("qty").value || 1);
 
-    const barcode=
-    document.getElementById("barcode").value;
-
-    const fromBox=
-    document.getElementById("currentBox").value;
-
-    const toBox=
-    document.getElementById("newBox").value;
-
-    const qty=
-    document.getElementById("qty").value;
-
-    if(
-        !barcode ||
-        !fromBox ||
-        !toBox
-    ){
+    if(!itemId || !fromBox || !toBox || !qty){
         alert("Complete all fields");
         return;
     }
 
-    const formData=
-    new FormData();
+    document.getElementById("message").textContent = "Moving stock...";
 
-    formData.append(
-        "action",
-        "moveStock"
-    );
+    const data = await postData({
+        action:"MOVE",
+        itemId:itemId,
+        fromBox:fromBox,
+        toBox:toBox,
+        qty:qty
+    });
 
-    formData.append(
-        "barcode",
-        barcode
-    );
+    if(!data.success){
+        document.getElementById("message").textContent = data.error || "Move failed";
+        return;
+    }
 
-    formData.append(
-        "fromBox",
-        fromBox
-    );
+    document.getElementById("message").textContent =
+        `Moved ${data.movedQty} of ${data.itemId} from ${data.fromBox} to ${data.toBox}`;
 
-    formData.append(
-        "toBox",
-        toBox
-    );
-
-    formData.append(
-        "qty",
-        qty
-    );
-
-    const res=await fetch(
-        SCRIPT_URL,
-        {
-            method:"POST",
-            body:formData
-        }
-    );
-
-    const text=
-    await res.text();
-
-    document.getElementById("message")
-    .textContent=text;
-
+    document.getElementById("qty").value = 1;
+    searchItems();
 }
 
 loadBoxes();
-
 </script>
 
 </body>
