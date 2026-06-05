@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<title>Inventory Basic</title>
+
+<style>
+html{touch-action:manipulation;}
+*{box-sizing:border-box;}
+
+body{
+    font-family:Arial,sans-serif;
+    background:#0d0d0d;
+    color:white;
+    padding:18px;
+    margin:0;
+}
+
+.page{max-width:700px;margin:0 auto;}
+
+.panel{
+    background:#1b1b1b;
+    border:1px solid rgba(255,255,255,0.08);
+    padding:22px;
+    border-radius:18px;
+}
+
+h1{text-align:center;margin:8px 0 6px;}
+.subtitle{text-align:center;color:#aaa;margin-bottom:22px;}
+
+input,button{
+    width:100%;
+    padding:14px;
+    margin:10px 0;
+    border:none;
+    border-radius:12px;
+    font-size:16px;
+}
+
+input{background:#2a2a2a;color:white;}
+
+button{
+    background:#4CAF50;
+    color:white;
+    font-weight:bold;
+}
+
+#app{display:none;}
+#loginBox{max-width:430px;margin:80px auto;text-align:center;}
+#loginError{color:#ff7777;font-weight:bold;}
+
+.stats-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:12px;
+    margin:20px 0;
+}
+
+.stat-card{
+    background:#242424;
+    border-radius:14px;
+    padding:14px;
+    text-align:center;
+}
+
+.stat-value{
+    font-size:26px;
+    font-weight:bold;
+}
+
+.stat-label{
+    color:#aaa;
+    font-size:13px;
+    margin-top:5px;
+}
+
+.menu{
+    display:grid;
+    gap:12px;
+    margin-top:20px;
+}
+
+.menu a{
+    display:block;
+    text-decoration:none;
+    color:white;
+    background:#242424;
+    border:1px solid rgba(255,255,255,0.08);
+    padding:18px;
+    border-radius:14px;
+    font-size:18px;
+    font-weight:bold;
+}
+
+.logout{
+    margin-top:20px;
+    background:#333;
+}
+
+@media(max-width:650px){
+    .stats-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+
+<body>
+
+<div class="page">
+
+<div class="panel" id="loginBox">
+    <h1>Inventory Basic</h1>
+    <p class="subtitle">Enter password</p>
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="login()">Login</button>
+    <p id="loginError"></p>
+</div>
+
+<div class="panel" id="app">
+    <h1>Inventory Basic</h1>
+    <p class="subtitle">Simple stock management</p>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value" id="productsValue">...</div>
+            <div class="stat-label">Products</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-value" id="stockValue">...</div>
+            <div class="stat-label">Stock Units</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-value" id="boxesValue">...</div>
+            <div class="stat-label">Boxes Used</div>
+        </div>
+    </div>
+
+    <div class="menu">
+        <a href="add.html">➕ Add Stock</a>
+        <a href="remove.html">➖ Remove Stock</a>
+        <a href="search.html">🔍 Search Stock</a>
+        <a href="boxes.html">📦 Manage Boxes</a>
+    </div>
+
+    <button class="logout" onclick="logout()">Logout</button>
+</div>
+
+</div>
+
+<script>
+const PASSWORD = "Inventory";
+
+const API_URL =
+"https://script.google.com/macros/s/AKfycbw-U6GNlgib1X8IfhA2j3FKU3NpVrvfK_ZKmIrumcu8eBOIcapg7rrPz87XmWm4AhRD/exec";
+
+function login(){
+    const entered = document.getElementById("password").value;
+
+    if(entered === PASSWORD){
+        localStorage.setItem("basicInventoryLoggedIn","yes");
+        showApp();
+    }else{
+        document.getElementById("loginError").innerText = "Wrong password";
+    }
+}
+
+function logout(){
+    localStorage.removeItem("basicInventoryLoggedIn");
+    location.reload();
+}
+
+function showApp(){
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    loadStats();
+}
+
+function loadStats(){
+    fetch(API_URL,{
+        method:"POST",
+        body:JSON.stringify({action:"STATS"})
+    })
+    .then(res=>res.json())
+    .then(data=>{
+        if(data.success){
+            document.getElementById("productsValue").innerText = data.totalProducts;
+            document.getElementById("stockValue").innerText = data.totalStock;
+            document.getElementById("boxesValue").innerText = data.totalBoxes;
+        }
+    })
+    .catch(error=>{
+        console.error(error);
+        document.getElementById("productsValue").innerText = "-";
+        document.getElementById("stockValue").innerText = "-";
+        document.getElementById("boxesValue").innerText = "-";
+    });
+}
+
+document.getElementById("password").addEventListener("keydown",function(e){
+    if(e.key === "Enter"){
+        e.preventDefault();
+        login();
+    }
+});
+
+if(localStorage.getItem("basicInventoryLoggedIn") === "yes"){
+    showApp();
+}
+</script>
+
+</body>
+</html>
