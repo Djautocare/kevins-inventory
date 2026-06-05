@@ -12,23 +12,37 @@ html{touch-action:manipulation;}
 
 body{
     font-family:Arial,sans-serif;
-    background:#0d0d0d;
+    background:linear-gradient(135deg,#050505,#151515,#1f1a08);
     color:white;
     padding:18px;
     margin:0;
 }
 
-.page{max-width:700px;margin:0 auto;}
+.page{
+    max-width:720px;
+    margin:0 auto;
+}
 
 .panel{
     background:#1b1b1b;
-    border:1px solid rgba(255,255,255,0.08);
+    border:1px solid rgba(212,175,55,0.25);
     padding:22px;
-    border-radius:18px;
+    border-radius:22px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.45);
 }
 
-h1{text-align:center;margin:8px 0 6px;}
-.subtitle{text-align:center;color:#aaa;margin-bottom:22px;}
+h1{
+    text-align:center;
+    margin:8px 0 6px;
+    color:#f4d46b;
+    font-size:32px;
+}
+
+.subtitle{
+    text-align:center;
+    color:#bbb;
+    margin-bottom:22px;
+}
 
 label{
     display:block;
@@ -40,11 +54,11 @@ label{
 
 input,select,button{
     width:100%;
-    padding:14px;
+    padding:16px;
     margin:6px 0 12px;
     border:none;
-    border-radius:12px;
-    font-size:16px;
+    border-radius:14px;
+    font-size:17px;
 }
 
 input,select{
@@ -54,15 +68,16 @@ input,select{
 }
 
 button{
-    background:#4CAF50;
-    color:white;
+    background:linear-gradient(135deg,#d4af37,#f4d46b);
+    color:#111;
     font-weight:bold;
+    cursor:pointer;
 }
 
 .search-box{
     background:#242424;
-    padding:14px;
-    border-radius:14px;
+    padding:15px;
+    border-radius:16px;
     margin-bottom:18px;
 }
 
@@ -70,33 +85,37 @@ button{
     display:none;
     margin-top:8px;
     background:#111;
-    border:1px solid rgba(255,255,255,0.08);
-    border-radius:12px;
+    border:1px solid rgba(212,175,55,0.18);
+    border-radius:14px;
     overflow:hidden;
 }
 
 .result-item{
-    padding:12px;
+    padding:14px;
     border-bottom:1px solid rgba(255,255,255,0.08);
     cursor:pointer;
 }
 
-.result-item:last-child{border-bottom:none;}
+.result-item:last-child{
+    border-bottom:none;
+}
 
 .result-title{
     font-weight:bold;
+    color:white;
 }
 
 .result-meta{
     color:#aaa;
     font-size:13px;
-    margin-top:4px;
+    margin-top:5px;
 }
 
 .message{
     text-align:center;
     font-weight:bold;
-    margin-top:12px;
+    margin-top:14px;
+    min-height:22px;
 }
 
 .back{
@@ -105,17 +124,51 @@ button{
     color:white;
     background:#333;
     text-decoration:none;
-    padding:14px;
-    border-radius:12px;
+    padding:15px;
+    border-radius:14px;
     font-weight:bold;
     margin-top:16px;
 }
 
-#loading{
+#loadingOverlay{
     display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.78);
+    z-index:9999;
+    align-items:center;
+    justify-content:center;
+}
+
+.loaderBox{
+    background:#1b1b1b;
+    border:1px solid rgba(212,175,55,0.35);
+    padding:28px;
+    border-radius:20px;
     text-align:center;
-    color:#aaa;
-    margin-top:10px;
+    min-width:230px;
+}
+
+.spinner{
+    width:48px;
+    height:48px;
+    border:5px solid #333;
+    border-top:5px solid #d4af37;
+    border-radius:50%;
+    animation:spin 0.8s linear infinite;
+    margin:0 auto 14px;
+}
+
+@keyframes spin{
+    from{transform:rotate(0deg);}
+    to{transform:rotate(360deg);}
+}
+
+@media(max-width:600px){
+    body{padding:12px;}
+    h1{font-size:28px;}
+    .panel{padding:18px;}
+    input,select,button{font-size:16px;padding:15px;}
 }
 </style>
 </head>
@@ -125,7 +178,7 @@ button{
 <div class="page">
 <div class="panel">
 
-<h1>Add Stock</h1>
+<h1>➕ Add Stock</h1>
 <p class="subtitle">Add a new item or add more of an existing item</p>
 
 <div class="search-box">
@@ -147,12 +200,18 @@ button{
 
 <button onclick="addStock()">Add Stock</button>
 
-<div id="loading">Working...</div>
 <div id="message" class="message"></div>
 
 <a class="back" href="index.html">← Back to Dashboard</a>
 
 </div>
+</div>
+
+<div id="loadingOverlay">
+    <div class="loaderBox">
+        <div class="spinner"></div>
+        <p id="loadingText">Working...</p>
+    </div>
 </div>
 
 <script>
@@ -165,17 +224,34 @@ function showMessage(text){
     document.getElementById("message").innerText = text;
 }
 
-function showLoading(show){
-    document.getElementById("loading").style.display = show ? "block" : "none";
+function showLoading(text){
+    document.getElementById("loadingText").innerText = text || "Working...";
+    document.getElementById("loadingOverlay").style.display = "flex";
+}
+
+function hideLoading(){
+    document.getElementById("loadingOverlay").style.display = "none";
+}
+
+function jsonp(payload, callbackName){
+    const params = new URLSearchParams(payload);
+    params.append("callback", callbackName);
+
+    const script = document.createElement("script");
+    script.src = API_URL + "?" + params.toString();
+    document.body.appendChild(script);
+
+    script.onload = function(){
+        script.remove();
+    };
 }
 
 function loadBoxes(){
-    fetch(API_URL,{
-        method:"POST",
-        body:JSON.stringify({action:"GET_BOXES"})
-    })
-    .then(res=>res.json())
-    .then(data=>{
+    showLoading("Loading boxes...");
+
+    window.loadBoxesCallback = function(data){
+        hideLoading();
+
         const select = document.getElementById("location");
         select.innerHTML = '<option value="">Select Box</option>';
 
@@ -190,12 +266,11 @@ function loadBoxes(){
             option.textContent = item.box;
             select.appendChild(option);
         });
-    })
-    .catch(error=>{
-        console.error(error);
-        document.getElementById("location").innerHTML =
-            '<option value="">Could not load boxes</option>';
-    });
+    };
+
+    jsonp({
+        action:"GET_BOXES"
+    },"loadBoxesCallback");
 }
 
 function liveSearch(){
@@ -211,17 +286,11 @@ function liveSearch(){
     }
 
     searchTimer = setTimeout(()=>{
-        fetch(API_URL,{
-            method:"POST",
-            body:JSON.stringify({
-                action:"SEARCH",
-                query:query
-            })
-        })
-        .then(res=>res.json())
-        .then(data=>{
+        resultsBox.style.display = "block";
+        resultsBox.innerHTML = '<div class="result-item">Searching...</div>';
+
+        window.searchCallback = function(data){
             if(!data.success || !data.results || data.results.length === 0){
-                resultsBox.style.display = "block";
                 resultsBox.innerHTML =
                     '<div class="result-item">No matching items found</div>';
                 return;
@@ -243,14 +312,13 @@ function liveSearch(){
             });
 
             resultsBox.innerHTML = html;
-            resultsBox.style.display = "block";
-        })
-        .catch(error=>{
-            console.error(error);
-            resultsBox.style.display = "block";
-            resultsBox.innerHTML =
-                '<div class="result-item">Search error</div>';
-        });
+        };
+
+        jsonp({
+            action:"SEARCH",
+            query:query
+        },"searchCallback");
+
     },250);
 }
 
@@ -282,21 +350,11 @@ function addStock(){
         return;
     }
 
-    showLoading(true);
+    showLoading("Adding stock...");
     showMessage("");
 
-    fetch(API_URL,{
-        method:"POST",
-        body:JSON.stringify({
-            action:"ADD",
-            description:description,
-            qty:qty,
-            location:location
-        })
-    })
-    .then(res=>res.json())
-    .then(data=>{
-        showLoading(false);
+    window.addStockCallback = function(data){
+        hideLoading();
 
         if(!data.success){
             showMessage(data.error || "Could not add stock");
@@ -309,12 +367,14 @@ function addStock(){
         document.getElementById("existingSearch").value = "";
         document.getElementById("qty").value = "1";
         document.getElementById("searchResults").style.display = "none";
-    })
-    .catch(error=>{
-        showLoading(false);
-        console.error(error);
-        showMessage("Error adding stock");
-    });
+    };
+
+    jsonp({
+        action:"ADD",
+        description:description,
+        qty:qty,
+        location:location
+    },"addStockCallback");
 }
 
 document.getElementById("existingSearch").addEventListener("input",liveSearch);
