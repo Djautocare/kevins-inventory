@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Boxes</title>
 
 <style>
+html{touch-action:manipulation;}
 *{box-sizing:border-box;}
+
 body{
     font-family:Arial,sans-serif;
     background:linear-gradient(135deg,#050505,#151515,#1f1a08);
@@ -13,53 +15,142 @@ body{
     margin:0;
     padding:18px;
 }
+
 .page{
-    max-width:750px;
+    max-width:760px;
     margin:auto;
 }
+
 .panel{
     background:#1b1b1b;
     border:1px solid rgba(212,175,55,0.25);
     padding:22px;
-    border-radius:20px;
+    border-radius:22px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.45);
 }
+
 h1{
     text-align:center;
     color:#f4d46b;
+    font-size:32px;
+    margin:8px 0 6px;
 }
+
+.subtitle{
+    text-align:center;
+    color:#bbb;
+    margin-bottom:20px;
+}
+
 input,select,button{
     width:100%;
-    padding:14px;
-    margin:8px 0;
+    padding:16px;
+    margin:7px 0 12px;
     border:none;
-    border-radius:12px;
-    font-size:16px;
+    border-radius:14px;
+    font-size:17px;
 }
+
+input,select{
+    background:#2a2a2a;
+    color:white;
+    border:1px solid rgba(255,255,255,0.08);
+}
+
 button{
     background:linear-gradient(135deg,#d4af37,#f4d46b);
     color:#111;
     font-weight:bold;
+    cursor:pointer;
 }
-.box-card{
-    background:#262626;
-    border:1px solid rgba(255,255,255,0.08);
-    padding:14px;
-    border-radius:14px;
-    margin:10px 0;
-}
-.small{
-    color:#bbb;
-    font-size:14px;
-}
+
 .danger{
     background:#8b1e1e;
     color:white;
 }
-a{
+
+.box-card{
+    background:#262626;
+    border:1px solid rgba(255,255,255,0.08);
+    padding:16px;
+    border-radius:16px;
+    margin:12px 0;
+}
+
+.box-card h3{
+    margin:0 0 6px;
     color:#f4d46b;
+}
+
+.small{
+    color:#bbb;
+    font-size:14px;
+    margin:6px 0;
+}
+
+.contents{
+    margin-top:10px;
+    padding-top:8px;
+    border-top:1px solid rgba(255,255,255,0.08);
+}
+
+.message{
+    text-align:center;
+    font-weight:bold;
+    min-height:22px;
+}
+
+.back{
     display:block;
     text-align:center;
-    margin-top:18px;
+    color:white;
+    background:#333;
+    text-decoration:none;
+    padding:15px;
+    border-radius:14px;
+    font-weight:bold;
+    margin-top:16px;
+}
+
+#loadingOverlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.78);
+    z-index:9999;
+    align-items:center;
+    justify-content:center;
+}
+
+.loaderBox{
+    background:#1b1b1b;
+    border:1px solid rgba(212,175,55,0.35);
+    padding:28px;
+    border-radius:20px;
+    text-align:center;
+    min-width:230px;
+}
+
+.spinner{
+    width:48px;
+    height:48px;
+    border:5px solid #333;
+    border-top:5px solid #d4af37;
+    border-radius:50%;
+    animation:spin 0.8s linear infinite;
+    margin:0 auto 14px;
+}
+
+@keyframes spin{
+    from{transform:rotate(0deg);}
+    to{transform:rotate(360deg);}
+}
+
+@media(max-width:600px){
+    body{padding:12px;}
+    h1{font-size:28px;}
+    .panel{padding:18px;}
+    input,select,button{font-size:16px;padding:15px;}
 }
 </style>
 </head>
@@ -70,6 +161,7 @@ a{
 <div class="panel">
 
 <h1>📦 Boxes</h1>
+<p class="subtitle">Create boxes, search boxes and view contents</p>
 
 <input id="boxName" placeholder="New box name">
 <input id="boxNotes" placeholder="Notes optional">
@@ -83,19 +175,44 @@ a{
     <option value="notes">Sort by notes</option>
 </select>
 
-<p id="msg"></p>
+<p id="msg" class="message"></p>
 
 <div id="boxesList">Loading boxes...</div>
 
-<a href="index.html">Back to Home</a>
+<a class="back" href="index.html">← Back to Dashboard</a>
 
 </div>
+</div>
+
+<div id="loadingOverlay">
+    <div class="loaderBox">
+        <div class="spinner"></div>
+        <p id="loadingText">Working...</p>
+    </div>
 </div>
 
 <script>
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw-U6GNlgib1X8IfhA2j3FKU3NpVrvfK_ZKmIrumcu8eBOIcapg7rrPz87XmWm4AhRD/exec";
+const SCRIPT_URL =
+"https://script.google.com/macros/s/AKfycbw-U6GNlgib1X8IfhA2j3FKU3NpVrvfK_ZKmIrumcu8eBOIcapg7rrPz87XmWm4AhRD/exec";
 
 let allBoxes = [];
+
+function showLoading(text){
+    document.getElementById("loadingText").innerText = text || "Working...";
+    document.getElementById("loadingOverlay").style.display = "flex";
+}
+
+function hideLoading(){
+    document.getElementById("loadingOverlay").style.display = "none";
+}
+
+function showMsg(text){
+    document.getElementById("msg").innerText = text || "";
+}
+
+function safeId(text){
+    return String(text || "").replace(/[^a-zA-Z0-9]/g,"_");
+}
 
 function jsonp(payload, callbackName){
     const params = new URLSearchParams(payload);
@@ -105,13 +222,20 @@ function jsonp(payload, callbackName){
     script.src = SCRIPT_URL + "?" + params.toString();
     document.body.appendChild(script);
 
-    script.onload = () => script.remove();
+    script.onload = function(){
+        script.remove();
+    };
 }
 
 function loadBoxes(){
+    showLoading("Loading boxes...");
+
     window.boxesCallback = function(data){
+        hideLoading();
+
         if(!data.success){
-            document.getElementById("boxesList").innerHTML = data.error || "Could not load boxes";
+            document.getElementById("boxesList").innerHTML =
+                data.error || "Could not load boxes";
             return;
         }
 
@@ -144,7 +268,7 @@ function renderBoxes(){
     const list = document.getElementById("boxesList");
 
     if(boxes.length === 0){
-        list.innerHTML = "<p>No boxes found.</p>";
+        list.innerHTML = "<p class='small'>No boxes found.</p>";
         return;
     }
 
@@ -152,9 +276,11 @@ function renderBoxes(){
         <div class="box-card">
             <h3>${b.box}</h3>
             <div class="small">${b.notes || "No notes"}</div>
+
             <button onclick="viewBox('${b.box}')">View Contents</button>
-            <button class="danger" onclick="deleteBox('${b.box}')">Delete Box</button>
-            <div id="contents-${b.box.replaceAll(" ","_")}"></div>
+            <button class="danger" onclick="deleteBox('${b.box}')">Delete Empty Box</button>
+
+            <div class="contents" id="contents-${safeId(b.box)}"></div>
         </div>
     `).join("");
 }
@@ -168,14 +294,20 @@ function addBox(){
         return;
     }
 
+    showLoading("Adding box...");
+    showMsg("");
+
     window.addBoxCallback = function(data){
-        document.getElementById("msg").innerText =
-            data.success ? "Box added" : data.error;
+        hideLoading();
 
-        document.getElementById("boxName").value = "";
-        document.getElementById("boxNotes").value = "";
-
-        loadBoxes();
+        if(data.success){
+            showMsg("Box added");
+            document.getElementById("boxName").value = "";
+            document.getElementById("boxNotes").value = "";
+            loadBoxes();
+        }else{
+            showMsg(data.error || "Could not add box");
+        }
     };
 
     jsonp({
@@ -190,11 +322,18 @@ function deleteBox(box){
         return;
     }
 
-    window.deleteBoxCallback = function(data){
-        document.getElementById("msg").innerText =
-            data.success ? "Box deleted" : data.error;
+    showLoading("Deleting box...");
+    showMsg("");
 
-        loadBoxes();
+    window.deleteBoxCallback = function(data){
+        hideLoading();
+
+        if(data.success){
+            showMsg("Box deleted");
+            loadBoxes();
+        }else{
+            showMsg(data.error || "Could not delete box");
+        }
     };
 
     jsonp({
@@ -204,22 +343,26 @@ function deleteBox(box){
 }
 
 function viewBox(box){
+    showLoading("Loading box contents...");
+
     window.boxContentsCallback = function(data){
-        const id = "contents-" + box.replaceAll(" ","_");
-        const el = document.getElementById(id);
+        hideLoading();
+
+        const el = document.getElementById("contents-" + safeId(box));
 
         if(!data.success){
-            el.innerHTML = `<p>${data.error}</p>`;
+            el.innerHTML = `<p class="small">${data.error || "Could not load contents"}</p>`;
             return;
         }
 
-        if(data.results.length === 0){
+        if(!data.results || data.results.length === 0){
             el.innerHTML = "<p class='small'>This box is empty.</p>";
             return;
         }
 
         el.innerHTML = `
-            <p class="small">Total items: ${data.totalQty}</p>
+            <p class="small"><strong>Total items:</strong> ${data.totalQty}</p>
+            <p class="small"><strong>Different products:</strong> ${data.differentItems}</p>
             ${data.results.map(item => `
                 <div class="small">
                     ${item.description} — ${item.itemId} — Qty ${item.qty}
