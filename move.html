@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Move Stock</title>
+
+<style>
+body{
+    font-family:Arial,sans-serif;
+    background:#111;
+    color:white;
+    text-align:center;
+    padding:20px;
+}
+
+.box{
+    background:#1e1e1e;
+    padding:20px;
+    border-radius:12px;
+    max-width:600px;
+    margin:auto;
+}
+
+input,select,button{
+    width:90%;
+    padding:12px;
+    margin:8px;
+    border:none;
+    border-radius:8px;
+    font-size:16px;
+}
+
+button{
+    background:#d4af37;
+    color:black;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.result{
+    margin-top:15px;
+    font-weight:bold;
+}
+
+a{
+    color:#d4af37;
+    display:block;
+    margin-top:20px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+
+<h1>Move Stock</h1>
+
+<input
+    id="searchBox"
+    type="text"
+    placeholder="Search item..."
+    oninput="searchItems()">
+
+<select id="itemSelect" onchange="fillItem()">
+    <option value="">Select Item</option>
+</select>
+
+<input
+    id="barcode"
+    type="text"
+    placeholder="Barcode"
+    readonly>
+
+<select id="currentBox">
+    <option value="">Current Box</option>
+</select>
+
+<select id="newBox">
+    <option value="">Move To Box</option>
+</select>
+
+<input
+    id="qty"
+    type="number"
+    min="1"
+    value="1"
+    placeholder="Quantity">
+
+<button onclick="moveStock()">
+Move Stock
+</button>
+
+<div id="message" class="result"></div>
+
+<a href="index.html">Back to Home</a>
+
+</div>
+
+<script>
+
+const SCRIPT_URL =
+"PASTE_YOUR_APPS_SCRIPT_URL_HERE";
+
+let products=[];
+
+async function loadBoxes(){
+
+    const res=await fetch(
+        `${SCRIPT_URL}?action=getBoxes`
+    );
+
+    const boxes=await res.json();
+
+    const current=document.getElementById("currentBox");
+    const target=document.getElementById("newBox");
+
+    current.innerHTML=
+    '<option value="">Current Box</option>';
+
+    target.innerHTML=
+    '<option value="">Move To Box</option>';
+
+    boxes.forEach(box=>{
+
+        current.innerHTML+=
+        `<option value="${box.name}">
+        ${box.name}
+        </option>`;
+
+        target.innerHTML+=
+        `<option value="${box.name}">
+        ${box.name}
+        </option>`;
+    });
+
+}
+
+async function searchItems(){
+
+    const q=
+    document.getElementById("searchBox")
+    .value.trim();
+
+    if(q.length<1){
+        return;
+    }
+
+    const res=await fetch(
+        `${SCRIPT_URL}?action=searchProducts&q=${encodeURIComponent(q)}`
+    );
+
+    products=await res.json();
+
+    const select=
+    document.getElementById("itemSelect");
+
+    select.innerHTML=
+    '<option value="">Select Item</option>';
+
+    products.forEach(item=>{
+
+        select.innerHTML+=
+        `<option value="${item.barcode}">
+        ${item.description}
+        </option>`;
+    });
+
+}
+
+function fillItem(){
+
+    const barcode=
+    document.getElementById("itemSelect").value;
+
+    document.getElementById("barcode").value=
+    barcode;
+
+}
+
+async function moveStock(){
+
+    const barcode=
+    document.getElementById("barcode").value;
+
+    const fromBox=
+    document.getElementById("currentBox").value;
+
+    const toBox=
+    document.getElementById("newBox").value;
+
+    const qty=
+    document.getElementById("qty").value;
+
+    if(
+        !barcode ||
+        !fromBox ||
+        !toBox
+    ){
+        alert("Complete all fields");
+        return;
+    }
+
+    const formData=
+    new FormData();
+
+    formData.append(
+        "action",
+        "moveStock"
+    );
+
+    formData.append(
+        "barcode",
+        barcode
+    );
+
+    formData.append(
+        "fromBox",
+        fromBox
+    );
+
+    formData.append(
+        "toBox",
+        toBox
+    );
+
+    formData.append(
+        "qty",
+        qty
+    );
+
+    const res=await fetch(
+        SCRIPT_URL,
+        {
+            method:"POST",
+            body:formData
+        }
+    );
+
+    const text=
+    await res.text();
+
+    document.getElementById("message")
+    .textContent=text;
+
+}
+
+loadBoxes();
+
+</script>
+
+</body>
+</html>
