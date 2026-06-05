@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Boxes</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .box {
+      background: #1e1e1e;
+      padding: 20px;
+      border-radius: 12px;
+      max-width: 600px;
+      margin: auto;
+    }
+
+    input, button, select {
+      width: 90%;
+      padding: 12px;
+      margin: 8px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    button {
+      background: #d4af37;
+      color: black;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .box-card {
+      background: #2a2a2a;
+      border-radius: 10px;
+      padding: 12px;
+      margin: 10px;
+      text-align: left;
+    }
+
+    .small {
+      color: #ccc;
+      font-size: 14px;
+    }
+
+    a {
+      color: #d4af37;
+      display: block;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="box">
+    <h1>Boxes</h1>
+
+    <input id="newBox" placeholder="New box name">
+    <button onclick="addBox()">Add Box</button>
+
+    <input id="searchBox" placeholder="Search boxes..." oninput="loadBoxes()">
+
+    <select id="sortBy" onchange="loadBoxes()">
+      <option value="name">Sort by name</option>
+      <option value="qty">Sort by quantity</option>
+    </select>
+
+    <div id="boxesList">Loading boxes...</div>
+
+    <a href="index.html">Back to Home</a>
+  </div>
+
+<script>
+const SCRIPT_URL = "PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE";
+
+async function loadBoxes() {
+  const search = document.getElementById("searchBox").value.toLowerCase();
+  const sortBy = document.getElementById("sortBy").value;
+
+  const res = await fetch(`${SCRIPT_URL}?action=getBoxes`);
+  const boxes = await res.json();
+
+  let filtered = boxes.filter(b =>
+    String(b.name || "").toLowerCase().includes(search)
+  );
+
+  if (sortBy === "name") {
+    filtered.sort((a, b) => naturalSort(a.name, b.name));
+  }
+
+  if (sortBy === "qty") {
+    filtered.sort((a, b) => Number(b.qty || 0) - Number(a.qty || 0));
+  }
+
+  const container = document.getElementById("boxesList");
+
+  if (filtered.length === 0) {
+    container.innerHTML = "<p>No boxes found.</p>";
+    return;
+  }
+
+  container.innerHTML = filtered.map(b => `
+    <div class="box-card">
+      <strong>${b.name}</strong>
+      <div class="small">Total items: ${b.qty || 0}</div>
+      <div class="small">${b.notes || ""}</div>
+    </div>
+  `).join("");
+}
+
+async function addBox() {
+  const name = document.getElementById("newBox").value.trim();
+
+  if (!name) {
+    alert("Enter a box name first.");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("action", "addBox");
+  formData.append("boxName", name);
+
+  const res = await fetch(SCRIPT_URL, {
+    method: "POST",
+    body: formData
+  });
+
+  const text = await res.text();
+  alert(text);
+
+  document.getElementById("newBox").value = "";
+  loadBoxes();
+}
+
+function naturalSort(a, b) {
+  return String(a).localeCompare(String(b), undefined, {
+    numeric: true,
+    sensitivity: "base"
+  });
+}
+
+loadBoxes();
+</script>
+
+</body>
+</html>
