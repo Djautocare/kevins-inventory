@@ -234,7 +234,7 @@ function liveSearch(){
 
             let html = "";
 
-            data.results.forEach(item=>{
+            const filteredResults = data.results     .filter(item => Number(item.totalQty || 0) > 0)     .sort((a,b)=>{         const aNum = Number(String(a.itemId || "").match(/\d+/)?.[0] || 0);         const bNum = Number(String(b.itemId || "").match(/\d+/)?.[0] || 0);         return bNum - aNum; // newest/highest item number first     });  if(filteredResults.length === 0){     results.innerHTML =         '<div class="empty">No matching items currently in stock.</div>';     return; }  filteredResults.forEach(item=>{
                 let locationsHtml = "";
 
                 if(item.locations && item.locations.length > 0){
