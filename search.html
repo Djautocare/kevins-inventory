@@ -223,45 +223,58 @@ function liveSearch(){
     searchTimer = setTimeout(function(){
         showLoading("Searching...");
 
-        window.searchStockCallback = function(data){
-            hideLoading();
+       window.searchStockCallback = function(data){
+    hideLoading();
 
-            if(!data.success || !data.results || data.results.length === 0){
-                results.innerHTML =
-                    '<div class="empty">No matching items found.</div>';
-                return;
-            }
+    if(!data.success || !data.results || data.results.length === 0){
+        results.innerHTML =
+            '<div class="empty">No matching items found.</div>';
+        return;
+    }
 
-            let html = "";
+    let filteredResults = data.results
+        .filter(item => Number(item.totalQty || 0) > 0)
+        .sort((a, b) => {
+            const aNum = Number(String(a.itemId || "").replace(/\D/g, ""));
+            const bNum = Number(String(b.itemId || "").replace(/\D/g, ""));
+            return bNum - aNum;
+        });
 
-            const filteredResults = data.results     .filter(item => Number(item.totalQty || 0) > 0)     .sort((a,b)=>{         const aNum = Number(String(a.itemId || "").match(/\d+/)?.[0] || 0);         const bNum = Number(String(b.itemId || "").match(/\d+/)?.[0] || 0);         return bNum - aNum; // newest/highest item number first     });  if(filteredResults.length === 0){     results.innerHTML =         '<div class="empty">No matching items currently in stock.</div>';     return; }  filteredResults.forEach(item=>{
-                let locationsHtml = "";
+    if(filteredResults.length === 0){
+        results.innerHTML =
+            '<div class="empty">No items currently in stock.</div>';
+        return;
+    }
 
-                if(item.locations && item.locations.length > 0){
-                    item.locations.forEach(loc=>{
-                        locationsHtml += `
-                            <div class="location">
-                                ${loc.location} — Qty ${loc.qty}
-                            </div>
-                        `;
-                    });
-                }else{
-                    locationsHtml =
-                        '<div class="location">No stock currently</div>';
-                }
+    let html = "";
 
-                html += `
-                    <div class="result-card">
-                        <div class="item-title">${item.description}</div>
-                        <div class="item-id">${item.itemId}</div>
-                        <div class="qty">Total Qty: ${item.totalQty}</div>
-                        ${locationsHtml}
-                    </div>
-                `;
-            });
+    filteredResults.forEach(item=>{
+        let locationsHtml = "";
 
-            results.innerHTML = html;
-        };
+        if(item.locations && item.locations.length > 0){
+            item.locations
+                .filter(loc => Number(loc.qty || 0) > 0)
+                .forEach(loc=>{
+                    locationsHtml += `
+                        <div class="location">
+                            ${loc.location} — Qty ${loc.qty}
+                        </div>
+                    `;
+                });
+        }
+
+        html += `
+            <div class="result-card">
+                <div class="item-title">${item.description}</div>
+                <div class="item-id">${item.itemId}</div>
+                <div class="qty">Total Qty: ${item.totalQty}</div>
+                ${locationsHtml}
+            </div>
+        `;
+    });
+
+    results.innerHTML = html;
+};
 
         jsonp({
             action:"SEARCH",
